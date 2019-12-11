@@ -94,7 +94,7 @@ import { axios } from '@/plugins/axios'
     },
     mounted() {
      var startdate = new Date()
-      startdate.setDate(startdate.getDate()-10)
+      startdate.setDate(startdate.getDate()-1)
       this.$data.startTime=ISODateString(startdate)
       this.$data.endTime=ISODateString(new Date())
 
@@ -141,7 +141,7 @@ import { axios } from '@/plugins/axios'
           endTime=this.$data.endTime
         }
         // newPeriod=""
-        var url ='http://localhost:8428/api/v1/query_range?start='+startTime+'&end='+endTime+''+newPeriod+'&query={__name__=~"measurement.*"}'
+        var url ='http://192.168.1.253:8428/api/v1/query_range?start='+startTime+'&end='+endTime+''+newPeriod+'&query={__name__=~"measurement.*"}'
        //'http://192.168.1.253:8428/api/v1/export?match={__name__=~%22measurement.*%22}'
         console.log(url)
         axios.get(url).then(

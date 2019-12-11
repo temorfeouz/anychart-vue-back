@@ -4,7 +4,10 @@ gen:
 	go generate
 compile:
 	go build  -ldflags="-s -w"
+compile-mips:
+	GOOS=linux GOARCH=mipsle go build -ldflags="-s -w"
 build:	static gen compile
+build-mips: static gen compile-mips
 run: build
 	./anychart-vue-back
 
