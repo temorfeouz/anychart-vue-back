@@ -11,10 +11,10 @@
       </button>
       <fieldset>
         <legend>Latest vals</legend>
-      <h5>Temp: {{ lastTemp }}</h5>
-      <h5>Hum:  {{ lastHum }}</h5>
-      <h5>Gas:  {{ lastGas }}</h5>
-      <h5>Press:{{ lastPress }}</h5>
+      <h5 class="temp">Temp: {{ lastTemp }}</h5>
+      <h5 class="humidity">Hum:  {{ lastHum }}</h5>
+      <h5 class="gas">Gas:  {{ lastGas }}</h5>
+      <h5 class="press">Press:{{ lastPress }}</h5>
       </fieldset>
       <section class="chart-container">
         <vue-anychart :options="CombineOptions" ref="combineChart"></vue-anychart>
@@ -310,5 +310,17 @@ console.log("latest data url ", url)
     margin: 0;
     border: 0;
     font-size: 100%;
+  }
+  .humidity{
+    color:blue;
+  }
+  .temp{
+    color:red;
+  }
+  .gas{
+    color: black;
+  }
+  .press{
+    color: green;
   }
 </style>
