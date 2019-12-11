@@ -3,7 +3,7 @@ static:
 gen:
 	go generate
 compile:
-	go build
+	go build  -ldflags="-s -w"
 build:	static gen compile
 run: build
 	./anychart-vue-back
