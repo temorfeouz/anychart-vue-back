@@ -99,7 +99,7 @@ import { axios } from '@/plugins/axios'
       this.$data.endTime=ISODateString(CurDate())
 
 
-      this.lineSeriesCount = this.$refs.lineChart.chart.getSeriesCount()
+      // this.lineSeriesCount = this.$refs.lineChart.chart.getSeriesCount()
     },
     methods: {
       remove() {
