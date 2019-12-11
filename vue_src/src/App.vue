@@ -4,28 +4,18 @@
     Atmosphere info
     </h1>
     <section class="chart-list">
-      <!--<section class="chart-container">-->
-        <!--<vue-anychart :options="lineOptions" ref="lineChart"></vue-anychart>-->
-        <!--<button class="btn btn-primary" @click="add(getRandomData())">Add Series</button>-->
-        <!--<button class="btn btn-danger" @click="remove" :disabled="lineSeriesCount == 0">Remove Series</button>-->
-      <!--</section>-->
-
-      <!--<section class="chart-container">-->
-        <!--<vue-anychart :options="pieOptions" ref="pieChart"></vue-anychart>-->
-        <!--<button class="btn btn-primary" @click.once="updatePieData" :disabled="pieDataIsModified == true">Update data-->
-        <!--</button>-->
-      <!--</section>-->
-
-      <!--<section class="chart-container">-->
-        <!--<vue-anychart :options="areaOptions" ref="areaChart"></vue-anychart>-->
-        <!--<button class="btn btn-primary" @click.once="modifiedXAxis" :disabled="xAxisIsModified == true">Modify xAxis-->
-        <!--</button>-->
-      <!--</section>-->
-      <input id="period" value="10m" v-model="period">
-      <input id="startTime" value="" v-model="startTime">
-      <input id="endTime" value="" v-model="endTime">
-      <button class="btn btn-primary" @click="updateChartData">Update data
+         <input placeholder="Metric period" id="period" value="10m" v-model="period">
+      <input placeholder="Start period"  id="startTime"  value="" v-model="startTime">
+      <input placeholder="End period"  id="endTime"  value="" v-model="endTime">
+           <button class="btn btn-primary" @click="updateChartData">Update data
       </button>
+      <fieldset>
+        <legend>Latest vals</legend>
+      <h5>Temp: {{ lastTemp }}</h5>
+      <h5>Hum:  {{ lastHum }}</h5>
+      <h5>Gas:  {{ lastGas }}</h5>
+      <h5>Press:{{ lastPress }}</h5>
+      </fieldset>
       <section class="chart-container">
         <vue-anychart :options="CombineOptions" ref="combineChart"></vue-anychart>
       </section>
@@ -51,14 +41,20 @@ function ISODateString(d){
 
   return ret
 }
+const timezoneOffset=2
 
+function CurDate(){
+ var ret= new Date()
+
+  return new Date(ret.getFullYear(),ret.getMonth(), ret.getDate(), ret.getHours()+timezoneOffset, ret.getMinutes(), ret.getSeconds())
+}
 function timeConverter(UNIX_timestamp){
   var a = new Date(UNIX_timestamp*1000 );
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var year = a.getFullYear();
   var month = months[a.getMonth()];
   var date = a.getDate();
-  var hour = a.getHours();
+  var hour = a.getHours()+timezoneOffset;
   var min = a.getMinutes();
   var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min  ;
   return time;
@@ -74,6 +70,10 @@ import { axios } from '@/plugins/axios'
     },
     data() {
       var ret = {
+        lastTemp:"",
+        lastHum:"",
+        lastGas:"",
+        lastPress:"",
         period:"10m",
         startTime:"",
         endTime:"",
@@ -93,10 +93,10 @@ import { axios } from '@/plugins/axios'
       return ret
     },
     mounted() {
-     var startdate = new Date()
+     var startdate = CurDate()
       startdate.setDate(startdate.getDate()-1)
       this.$data.startTime=ISODateString(startdate)
-      this.$data.endTime=ISODateString(new Date())
+      this.$data.endTime=ISODateString(CurDate())
 
 
       this.lineSeriesCount = this.$refs.lineChart.chart.getSeriesCount()
@@ -124,12 +124,43 @@ import { axios } from '@/plugins/axios'
         this.xAxisIsModified = true;
       },
 
+getlatestdata(){
+  var std=CurDate()
+  std.setHours(std.getHours()-12)
+  var url ='http://192.168.1.253:8428/api/v1/query_range?start='+ISODateString(std)+'&end='+ISODateString(CurDate())+'&query={__name__=~"measurement.*"}'
+console.log("latest data url ", url)
+  axios.get(url).then(
+    response =>  {
+      response.data.data.result.forEach(v=>{
 
+        if (v.metric.__name__=="measurement_humidity"){
+         var latest=v.values.length-1
+          this.$data.lastHum=v.values[latest][1]+"% at "+timeConverter(v.values[latest][0])
+        }
+        if (v.metric.__name__=="measurement_temperature"){
+         var latest=v.values.length-1
+          this.$data.lastTemp=v.values[latest][1]+"°C at "+timeConverter(v.values[latest][0])
+        }
+        if (v.metric.__name__=="measurement_gas"){
+        var  latest=v.values.length-1
+          this.$data.lastGas=v.values[latest][1]+" at "+timeConverter(v.values[latest][0])
+        }
+        if (v.metric.__name__=="measurement_preassure"){
+       var   latest=v.values.length-1
+          this.$data.lastPress=v.values[latest][1]+" at "+timeConverter(v.values[latest][0])
+        }
+      })
+
+
+    }).catch((error) => alert("ERRRR_"+error));
+
+},
 
       updateChartData() {
+        this.getlatestdata()
        var newPeriod=""
         var startdate = new Date()
-        startdate.setDate(startdate.getDate()-10)
+        startdate.setDate(startdate.getDate()-1)
         var startTime=ISODateString(startdate)
         var endTime=ISODateString(new Date())
         if (this.$data!=undefined){
@@ -211,7 +242,7 @@ import { axios } from '@/plugins/axios'
                 }
                 if (v.metric.__name__=="measurement_gas"){
                   for ( var i=0;i<v.values.length;i++){
-                    if (v.values[i][1]==0){continue}
+                    // if (v.values[i][1]==0){continue}
                     this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
                   }
                 }
@@ -252,7 +283,12 @@ import { axios } from '@/plugins/axios'
   body {
     padding: 50px;
   }
-
+#period{
+  width: 32pt;
+}
+#startTime,#endTime{
+  width: 129pt;
+}
   .chart {
     width: 100%;
     height: 400px;
@@ -267,5 +303,12 @@ import { axios } from '@/plugins/axios'
 
   .chart-list .chart-container:first-child {
     margin-top: 35px;
+  }
+  fieldset h5 {
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    font-size: 100%;
   }
 </style>
