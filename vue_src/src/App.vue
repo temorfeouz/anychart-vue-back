@@ -11,10 +11,10 @@
       </button>
       <fieldset>
         <legend>Latest vals</legend>
-      <h5 class="temp">Temp: {{ lastTemp }}</h5>
-      <h5 class="humidity">Hum:  {{ lastHum }}</h5>
-      <h5 class="gas">Gas:  {{ lastGas }}</h5>
-      <h5 class="press">Press:{{ lastPress }}</h5>
+      <h5 class="temp">Temp: {{ lastTemp }} (~ {{ avgTemp }}°C)</h5>
+      <h5 class="humidity">Hum:  {{ lastHum }}(~ {{ avgHum }}%)</h5>
+      <h5 >Gas:  <span v-html="lastGas"></span> (~  <span v-html="avgGas"></span> ) </h5>
+      <h5 class="press">Press:{{ lastPress }}(~ {{ avgPress }})</h5>
       </fieldset>
       <section class="chart-container">
         <vue-anychart :options="CombineOptions" ref="combineChart"></vue-anychart>
@@ -26,9 +26,54 @@
 
   </div>
 </template>
+<style>
+  .good{
+    color:black;
+    background-color: green;
+  }
+  .avg{
+    color:black;
+    background-color: yellow;
+  }
+  .litbad{
+    color:black;
+    background-color: orange;
+  }
+  .bad{
+    color:black;
+    background-color: red;
+  }
+  .worse{
+    color:white;
+    background-color: purple;
+  } .wevybad{
+      color:white;
+      background-color: black;
+    }
 
+</style>
 <script>
 /* eslint-disable */
+function gasquality(val){
+  if (val>0 &&val <=50){
+    return "<span class='good'>Good</span>";
+  }
+  if (val>50 &&val <=100){
+    return "<span class='avg'>Average</span>";
+  }
+  if (val>100 &&val <=150){
+    return "<span class='litbad'>Little bad</span>";
+  }
+  if (val>150 &&val <=200){
+    return "<span class='bad'>Bad</span>";
+  }if (val>200 &&val <=300){
+    return "<span class='worse'>Worse</span>";
+  }if (val>300 &&val <=500){
+    return "<span class='wevybad'>Very bad</span>";
+  }
+
+}
+
 /* use a function for the exact format desired... */
 function ISODateString(d){
   function pad(n){return n<10 ? '0'+n : n}
@@ -48,13 +93,26 @@ function CurDate(){
 
   return new Date(ret.getFullYear(),ret.getMonth(), ret.getDate(), ret.getHours()+timezoneOffset, ret.getMinutes(), ret.getSeconds())
 }
-function timeConverter(UNIX_timestamp){
+function calcAvg(elems){
+  var ret=0;
+  for (var i=0; i<elems.length;i++){
+   ret+=elems[i][1]*1.0;
+  }
+
+  return parseFloat(ret/elems.length*1.0).toFixed(1)
+}
+
+function timeConverter(UNIX_timestamp, correctTZ){
   var a = new Date(UNIX_timestamp*1000 );
   var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var year = a.getFullYear();
   var month = months[a.getMonth()];
   var date = a.getDate();
-  var hour = a.getHours()+timezoneOffset;
+  if (correctTZ){
+    var hour = a.getHours()+timezoneOffset;
+  }else{
+    var hour = a.getHours();
+  }
   var min = a.getMinutes();
   var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min  ;
   return time;
@@ -74,6 +132,10 @@ import { axios } from '@/plugins/axios'
         lastHum:"",
         lastGas:"",
         lastPress:"",
+        avgTemp:"",
+        avgHum:"",
+        avgGas:"",
+        avgPress:"",
         period:"10m",
         startTime:"",
         endTime:"",
@@ -135,19 +197,23 @@ console.log("latest data url ", url)
 
         if (v.metric.__name__=="measurement_humidity"){
          var latest=v.values.length-1
-          this.$data.lastHum=v.values[latest][1]+"% at "+timeConverter(v.values[latest][0])
+          this.$data.avgHum= calcAvg(v.values)
+          this.$data.lastHum= parseFloat(v.values[latest][1]).toFixed(1)+"% at "+timeConverter(v.values[latest][0])
         }
         if (v.metric.__name__=="measurement_temperature"){
          var latest=v.values.length-1
-          this.$data.lastTemp=v.values[latest][1]+"°C at "+timeConverter(v.values[latest][0])
+          this.$data.avgTemp= calcAvg(v.values)
+          this.$data.lastTemp= parseFloat(v.values[latest][1]).toFixed(1)+"°C at "+timeConverter(v.values[latest][0])
         }
         if (v.metric.__name__=="measurement_gas"){
         var  latest=v.values.length-1
-          this.$data.lastGas=v.values[latest][1]+" at "+timeConverter(v.values[latest][0])
+          this.$data.avgGas= gasquality(calcAvg(v.values))
+          this.$data.lastGas=gasquality(v.values[latest][1])+" at "+timeConverter(v.values[latest][0])
         }
         if (v.metric.__name__=="measurement_preassure"){
        var   latest=v.values.length-1
-          this.$data.lastPress=v.values[latest][1]+" at "+timeConverter(v.values[latest][0])
+          this.$data.avgPress= calcAvg(v.values)
+          this.$data.lastPress=parseFloat(v.values[latest][1]).toFixed(1)+" at "+timeConverter(v.values[latest][0])
         }
       })
 
@@ -231,25 +297,25 @@ console.log("latest data url ", url)
                 if (v.metric.__name__=="measurement_humidity"){
                   for ( var i=0;i<v.values.length;i++){
                     if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                    this.$data.CombineOptions.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_temperature"){
                   for ( var i=0;i<v.values.length;i++){
                     if (v.values[i][1]< -60){continue}
-                    this.$data.CombineOptions.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                    this.$data.CombineOptions.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_gas"){
                   for ( var i=0;i<v.values.length;i++){
                     // if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                    this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_preassure"){
                   for ( var i=0;i<v.values.length;i++){
                     if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions1.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': v.values[i][1]})
+                    this.$data.CombineOptions1.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                           })
