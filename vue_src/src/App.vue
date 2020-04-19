@@ -225,10 +225,10 @@ console.log("latest data url ", url)
       updateChartData() {
         this.getlatestdata()
        var newPeriod=""
-        var startdate = new Date()
+        var startdate = CurDate()
         startdate.setDate(startdate.getDate()-1)
         var startTime=ISODateString(startdate)
-        var endTime=ISODateString(new Date())
+        var endTime=ISODateString(CurDate())
         if (this.$data!=undefined){
          console.log("!!",this.$data.period)
          if (this.$data.period!=""){
