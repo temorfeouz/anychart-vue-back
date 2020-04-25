@@ -207,8 +207,8 @@ console.log("latest data url ", url)
         }
         if (v.metric.__name__=="measurement_gas"){
         var  latest=v.values.length-1
-          this.$data.avgGas= gasquality(calcAvg(v.values))
-          this.$data.lastGas=gasquality(v.values[latest][1])+" at "+timeConverter(v.values[latest][0])
+          this.$data.avgGas= gasquality(calcAvg(v.values)/10)
+          this.$data.lastGas=gasquality(v.values[latest][1]/10)+" at "+timeConverter(v.values[latest][0]/10)
         }
         if (v.metric.__name__=="measurement_preassure"){
        var   latest=v.values.length-1
@@ -309,7 +309,7 @@ console.log("latest data url ", url)
                 if (v.metric.__name__=="measurement_gas"){
                   for ( var i=0;i<v.values.length;i++){
                     // if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]/10).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_preassure"){

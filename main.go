@@ -5,7 +5,7 @@ import (
 	"github.com/temorfeouz/anychart-vue-back/config"
 )
 
-//go:generate /home/t/src/go/bin/go-bindata -o api/assets_gen.go -pkg api vue_src/dist/...
+//go:generate ./go-bindata -o api/assets_gen.go -pkg api vue_src/dist/...
 
 func main() {
 	config.Init()
