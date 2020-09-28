@@ -33,16 +33,29 @@
           </section>
         </tab>
         <tab name="Room">
-          Second tab content
+          <fieldset>
+            <legend>Latest vals</legend>
+            <h5 class="temp">Temp: {{ lastRoomTemp }} (~ {{ avgRoomTemp }}°C)</h5>
+            <h5 class="humidity">Hum:  {{ lastRoomHum }}(~ {{ avgRoomHum }}%)</h5>
+            <h5 >Gas:  <span v-html="lastRoomGas"></span> (~  <span v-html="avgRoomGas"></span> ) </h5>
+            <h5 class="press">Press:{{ lastRoomPress }}(~ {{ avgRoomPress }})</h5>
+          </fieldset>
+          <section class="chart-container">
+            <vue-anychart :options="TempRoom" ref="tempRoom"></vue-anychart>
+          </section>
+          <section class="chart-container">
+            <vue-anychart :options="GasRoom" ref="gasRoom"></vue-anychart>
+          </section>
+          <section class="chart-container">
+            <vue-anychart :options="HumRoom" ref="humRoom"></vue-anychart>
+          </section>
+          <section class="chart-container">
+            <vue-anychart :options="PressRoom" ref="pressRoom"></vue-anychart>
+          </section>
         </tab>
       </tabs>
 
     </section>
-
-
-
-
-
   </div>
 </template>
 <script>
@@ -129,6 +142,16 @@ import { axios } from '@/plugins/axios'
         avgStreetHum:"",
         avgStreetGas:"",
         avgStreetPress:"",
+
+        lastRoomTemp:"",
+        lastRoomHum:"",
+        lastRoomGas:"",
+        lastRoomPress:"",
+        avgRoomTemp:"",
+        avgRoomHum:"",
+        avgRoomGas:"",
+        avgRoomPress:"",
+
         period:"10m",
         startTime:"",
         endTime:"",
@@ -140,6 +163,12 @@ import { axios } from '@/plugins/axios'
         HumStreet: null,
         GasStreet:null,
         PressStreet:null,
+
+        TempRoom: null,
+        HumRoom: null,
+        GasRoom:null,
+        PressRoom:null,
+
         lineSeriesCount: 0,
         xAxisIsModified: false,
         pieDataIsModified: false
@@ -190,27 +219,50 @@ console.log("latest data url ", url)
     response =>  {
       response.data.data.result.forEach(v=>{
         if (v.metric.location=="street"){
-        if (v.metric.__name__=="measurement_humidity"){
-         var latest=v.values.length-1
-          this.$data.avgStreetHum= calcAvg(v.values)
-          this.$data.lastStreetHum= parseFloat(v.values[latest][1]).toFixed(1)+"% at "+timeConverter(v.values[latest][0])
+          if (v.metric.__name__=="measurement_humidity"){
+            var latest=v.values.length-1
+            this.$data.avgStreetHum= calcAvg(v.values)
+            this.$data.lastStreetHum= parseFloat(v.values[latest][1]).toFixed(1)+"% at "+timeConverter(v.values[latest][0])
+          }
+          if (v.metric.__name__=="measurement_temperature"){
+            var latest=v.values.length-1
+            this.$data.avgStreetTemp= calcAvg(v.values)
+            this.$data.lastStreetTemp= parseFloat(v.values[latest][1]).toFixed(1)+"°C at "+timeConverter(v.values[latest][0])
+          }
+          if (v.metric.__name__=="measurement_gas"){
+            var  latest=v.values.length-1
+            this.$data.avgStreetGas= gasquality(calcAvg(v.values))
+            this.$data.lastStreetGas=gasquality(v.values[latest][1])+" at "+timeConverter(v.values[latest][0])
+          }
+          if (v.metric.__name__=="measurement_preassure"){
+            var   latest=v.values.length-1
+            this.$data.avgStreetPress= calcAvg(v.values)
+            this.$data.lastStreetPress=parseFloat(v.values[latest][1]).toFixed(1)+" at "+timeConverter(v.values[latest][0])
+          }
         }
-        if (v.metric.__name__=="measurement_temperature"){
-         var latest=v.values.length-1
-          this.$data.avgStreetTemp= calcAvg(v.values)
-          this.$data.lastStreetTemp= parseFloat(v.values[latest][1]).toFixed(1)+"°C at "+timeConverter(v.values[latest][0])
+        if (v.metric.location=="home"){
+          if (v.metric.__name__=="measurement_humidity"){
+            var latest=v.values.length-1
+            this.$data.avgRoomHum= calcAvg(v.values)
+            this.$data.lastRoomHum= parseFloat(v.values[latest][1]).toFixed(1)+"% at "+timeConverter(v.values[latest][0])
+          }
+          if (v.metric.__name__=="measurement_temperature"){
+            var latest=v.values.length-1
+            this.$data.avgRoomTemp= calcAvg(v.values)
+            this.$data.lastRoomTemp= parseFloat(v.values[latest][1]).toFixed(1)+"°C at "+timeConverter(v.values[latest][0])
+          }
+          if (v.metric.__name__=="measurement_gas"){
+            var  latest=v.values.length-1
+            this.$data.avgRoomGas= gasquality(calcAvg(v.values))
+            this.$data.lastRoomGas=gasquality(v.values[latest][1])+" at "+timeConverter(v.values[latest][0])
+          }
+          if (v.metric.__name__=="measurement_preassure"){
+            var   latest=v.values.length-1
+            this.$data.avgRoomPress= calcAvg(v.values)
+            this.$data.lastRoomPress=parseFloat(v.values[latest][1]).toFixed(1)+" at "+timeConverter(v.values[latest][0])
+          }
         }
-        if (v.metric.__name__=="measurement_gas"){
-        var  latest=v.values.length-1
-          this.$data.avgStreetGas= gasquality(calcAvg(v.values))
-          this.$data.lastStreetGas=gasquality(v.values[latest][1])+" at "+timeConverter(v.values[latest][0])
-        }
-        if (v.metric.__name__=="measurement_preassure"){
-       var   latest=v.values.length-1
-          this.$data.avgStreetPress= calcAvg(v.values)
-          this.$data.lastStreetPress=parseFloat(v.values[latest][1]).toFixed(1)+" at "+timeConverter(v.values[latest][0])
-        }
-      }})
+      })
 
 
     }).catch((error) => alert("ERRRR_"+error));
@@ -246,12 +298,12 @@ console.log("latest data url ", url)
                 'tooltip': {'displayMode': 'union'},
                 'interactivity': {'hoverMode': 'by-x'},
                 'series': [ {
-                    'seriesType': 'spline',
-                    'name': 'Temperature',
-                    'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
-                    'data': [
-                    ]
-                  }
+                  'seriesType': 'spline',
+                  'name': 'Temperature',
+                  'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
                 ],
                 'type': 'column'
               }
@@ -309,33 +361,130 @@ console.log("latest data url ", url)
               }
             }
 
+            ///////////////////////
+            this.$data.TempRoom= {
+              'chart': {
+                'title': 'Temp',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [ {
+                  'seriesType': 'spline',
+                  'name': 'Temperature',
+                  'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                ],
+                'type': 'column'
+              }
+            }
+            this.$data.HumRoom= {
+              'chart': {
+                'title': 'Humidity',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [ {
+                  'seriesType': 'spline',
+                  'name': 'Humidity',
+                  'normal': {'stroke': {'color': 'blue', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                ],
+                'type': 'column'
+              }
+            }
+
+            this.$data.GasRoom= {
+              'chart': {
+                'title': 'Gas',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [  {
+                  'seriesType': 'spline',
+                  'name': 'Gas',
+                  'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                ],
+                'type': 'column'
+              }
+            }
+            this.$data.PressRoom= {
+              'chart': {
+                'title': 'Pressure',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [{
+                  'seriesType': 'spline',
+                  'name': 'Preassure',
+                  'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                ],
+                'type': 'column'
+              }
+            }
+
             response.data.data.result.forEach(v=>{
-              if (v.metric.location=="street"){
-                if (v.metric.__name__=="measurement_humidity"){
-                  for ( var i=0;i<v.values.length;i++){
-                    if (v.values[i][1]==0){continue}
-                    this.$data.HumStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                if (v.metric.location=="street"){
+                  if (v.metric.__name__=="measurement_humidity"){
+                    for ( var i=0;i<v.values.length;i++){
+                      if (v.values[i][1]==0){continue}
+                      this.$data.HumStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
+                  }
+                  if (v.metric.__name__=="measurement_temperature"){
+                    for ( var i=0;i<v.values.length;i++){
+                      if (v.values[i][1]< -60){continue}
+                      this.$data.TempStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
+                  }
+                  if (v.metric.__name__=="measurement_gas"){
+                    for ( var i=0;i<v.values.length;i++){
+                      // if (v.values[i][1]==0){continue}
+                      this.$data.GasStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
+                  }
+                  if (v.metric.__name__=="measurement_preassure"){
+                    for ( var i=0;i<v.values.length;i++){
+                      if (v.values[i][1]==0){continue}
+                      this.$data.PressStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
                   }
                 }
-                if (v.metric.__name__=="measurement_temperature"){
-                  for ( var i=0;i<v.values.length;i++){
-                    if (v.values[i][1]< -60){continue}
-                    this.$data.TempStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                if (v.metric.location=="home"){
+                  if (v.metric.__name__=="measurement_humidity"){
+                    for ( var i=0;i<v.values.length;i++){
+                      if (v.values[i][1]==0){continue}
+                      this.$data.HumRoom.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
+                  }
+                  if (v.metric.__name__=="measurement_temperature"){
+                    for ( var i=0;i<v.values.length;i++){
+                      if (v.values[i][1]< -60){continue}
+                      this.$data.TempRoom.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
+                  }
+                  if (v.metric.__name__=="measurement_gas"){
+                    for ( var i=0;i<v.values.length;i++){
+                      // if (v.values[i][1]==0){continue}
+                      this.$data.GasRoom.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
+                  }
+                  if (v.metric.__name__=="measurement_preassure"){
+                    for ( var i=0;i<v.values.length;i++){
+                      if (v.values[i][1]==0){continue}
+                      this.$data.PressRoom.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    }
                   }
                 }
-                if (v.metric.__name__=="measurement_gas"){
-                  for ( var i=0;i<v.values.length;i++){
-                    // if (v.values[i][1]==0){continue}
-                    this.$data.GasStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
-                  }
-                }
-                if (v.metric.__name__=="measurement_preassure"){
-                  for ( var i=0;i<v.values.length;i++){
-                    if (v.values[i][1]==0){continue}
-                    this.$data.PressStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
-                  }
-                }
-                          }
             }
                           )
 
