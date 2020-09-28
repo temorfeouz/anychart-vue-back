@@ -10,6 +10,7 @@ build:	static gen compile
 build-mips: static gen compile-mips
 run: build
 	./anychart-vue-back
-
+rf:
+	cd vue_src; npm run dev
 
 

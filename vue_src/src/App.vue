@@ -9,49 +9,42 @@
       <input placeholder="End period"  id="endTime"  value="" v-model="endTime">
            <button class="btn btn-primary" @click="updateChartData">Update data
       </button>
-      <fieldset>
-        <legend>Latest vals</legend>
-      <h5 class="temp">Temp: {{ lastTemp }} (~ {{ avgTemp }}°C)</h5>
-      <h5 class="humidity">Hum:  {{ lastHum }}(~ {{ avgHum }}%)</h5>
-      <h5 >Gas:  <span v-html="lastGas"></span> (~  <span v-html="avgGas"></span> ) </h5>
-      <h5 class="press">Press:{{ lastPress }}(~ {{ avgPress }})</h5>
-      </fieldset>
-      <section class="chart-container">
-        <vue-anychart :options="CombineOptions" ref="combineChart"></vue-anychart>
-      </section>
-      <section class="chart-container">
-        <vue-anychart :options="CombineOptions1" ref="combineChart1"></vue-anychart>
-      </section>
+
+      <tabs>
+        <tab name="Street">
+          <fieldset>
+            <legend>Latest vals</legend>
+            <h5 class="temp">Temp: {{ lastStreetTemp }} (~ {{ avgStreetTemp }}°C)</h5>
+            <h5 class="humidity">Hum:  {{ lastStreetHum }}(~ {{ avgStreetHum }}%)</h5>
+            <h5 >Gas:  <span v-html="lastStreetGas"></span> (~  <span v-html="avgStreetGas"></span> ) </h5>
+            <h5 class="press">Press:{{ lastStreetPress }}(~ {{ avgStreetPress }})</h5>
+          </fieldset>
+          <section class="chart-container">
+            <vue-anychart :options="TempStreet" ref="tempStreet"></vue-anychart>
+          </section>
+          <section class="chart-container">
+            <vue-anychart :options="GasStreet" ref="gasStreet"></vue-anychart>
+          </section>
+          <section class="chart-container">
+            <vue-anychart :options="HumStreet" ref="humStreet"></vue-anychart>
+          </section>
+          <section class="chart-container">
+            <vue-anychart :options="PressStreet" ref="pressStreet"></vue-anychart>
+          </section>
+        </tab>
+        <tab name="Room">
+          Second tab content
+        </tab>
+      </tabs>
+
     </section>
+
+
+
+
 
   </div>
 </template>
-<style>
-  .good{
-    color:black;
-    background-color: green;
-  }
-  .avg{
-    color:black;
-    background-color: yellow;
-  }
-  .litbad{
-    color:black;
-    background-color: orange;
-  }
-  .bad{
-    color:black;
-    background-color: red;
-  }
-  .worse{
-    color:white;
-    background-color: purple;
-  } .wevybad{
-      color:white;
-      background-color: black;
-    }
-
-</style>
 <script>
 /* eslint-disable */
 function gasquality(val){
@@ -128,14 +121,14 @@ import { axios } from '@/plugins/axios'
     },
     data() {
       var ret = {
-        lastTemp:"",
-        lastHum:"",
-        lastGas:"",
-        lastPress:"",
-        avgTemp:"",
-        avgHum:"",
-        avgGas:"",
-        avgPress:"",
+        lastStreetTemp:"",
+        lastStreetHum:"",
+        lastStreetGas:"",
+        lastStreetPress:"",
+        avgStreetTemp:"",
+        avgStreetHum:"",
+        avgStreetGas:"",
+        avgStreetPress:"",
         period:"10m",
         startTime:"",
         endTime:"",
@@ -143,8 +136,10 @@ import { axios } from '@/plugins/axios'
         // areaOptions: data.AreaData,
         // pieOptions: data.PieData,
         // lineOptions: data.LineData,
-        CombineOptions: null,
-        CombineOptions1: null,
+        TempStreet: null,
+        HumStreet: null,
+        GasStreet:null,
+        PressStreet:null,
         lineSeriesCount: 0,
         xAxisIsModified: false,
         pieDataIsModified: false
@@ -194,28 +189,28 @@ console.log("latest data url ", url)
   axios.get(url).then(
     response =>  {
       response.data.data.result.forEach(v=>{
-
+        if (v.metric.location=="street"){
         if (v.metric.__name__=="measurement_humidity"){
          var latest=v.values.length-1
-          this.$data.avgHum= calcAvg(v.values)
-          this.$data.lastHum= parseFloat(v.values[latest][1]).toFixed(1)+"% at "+timeConverter(v.values[latest][0])
+          this.$data.avgStreetHum= calcAvg(v.values)
+          this.$data.lastStreetHum= parseFloat(v.values[latest][1]).toFixed(1)+"% at "+timeConverter(v.values[latest][0])
         }
         if (v.metric.__name__=="measurement_temperature"){
          var latest=v.values.length-1
-          this.$data.avgTemp= calcAvg(v.values)
-          this.$data.lastTemp= parseFloat(v.values[latest][1]).toFixed(1)+"°C at "+timeConverter(v.values[latest][0])
+          this.$data.avgStreetTemp= calcAvg(v.values)
+          this.$data.lastStreetTemp= parseFloat(v.values[latest][1]).toFixed(1)+"°C at "+timeConverter(v.values[latest][0])
         }
         if (v.metric.__name__=="measurement_gas"){
         var  latest=v.values.length-1
-          this.$data.avgGas= gasquality(calcAvg(v.values)/10)
-          this.$data.lastGas=gasquality(v.values[latest][1]/10)+" at "+timeConverter(v.values[latest][0]/10)
+          this.$data.avgStreetGas= gasquality(calcAvg(v.values))
+          this.$data.lastStreetGas=gasquality(v.values[latest][1])+" at "+timeConverter(v.values[latest][0])
         }
         if (v.metric.__name__=="measurement_preassure"){
        var   latest=v.values.length-1
-          this.$data.avgPress= calcAvg(v.values)
-          this.$data.lastPress=parseFloat(v.values[latest][1]).toFixed(1)+" at "+timeConverter(v.values[latest][0])
+          this.$data.avgStreetPress= calcAvg(v.values)
+          this.$data.lastStreetPress=parseFloat(v.values[latest][1]).toFixed(1)+" at "+timeConverter(v.values[latest][0])
         }
-      })
+      }})
 
 
     }).catch((error) => alert("ERRRR_"+error));
@@ -244,20 +239,13 @@ console.log("latest data url ", url)
         axios.get(url).then(
           response =>  {
 
-            this.$data.CombineOptions= {
+            this.$data.TempStreet= {
               'chart': {
-                'title': 'Temp + humidity',
+                'title': 'Temp',
                 'animation': true,
                 'tooltip': {'displayMode': 'union'},
                 'interactivity': {'hoverMode': 'by-x'},
                 'series': [ {
-                  'seriesType': 'spline',
-                  'name': 'Humidity',
-                  'normal': {'stroke': {'color': 'blue', 'thickness': 2.5}},
-                  'data': [
-                  ]
-                },
-                  {
                     'seriesType': 'spline',
                     'name': 'Temperature',
                     'normal': {'stroke': {'color': 'red', 'thickness': 2.5}},
@@ -268,10 +256,27 @@ console.log("latest data url ", url)
                 'type': 'column'
               }
             }
-
-            this.$data.CombineOptions1= {
+            this.$data.HumStreet= {
               'chart': {
-                'title': 'Gas + pressure',
+                'title': 'Humidity',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [ {
+                  'seriesType': 'spline',
+                  'name': 'Humidity',
+                  'normal': {'stroke': {'color': 'blue', 'thickness': 2.5}},
+                  'data': [
+                  ]
+                }
+                ],
+                'type': 'column'
+              }
+            }
+
+            this.$data.GasStreet= {
+              'chart': {
+                'title': 'Gas',
                 'animation': true,
                 'tooltip': {'displayMode': 'union'},
                 'interactivity': {'hoverMode': 'by-x'},
@@ -281,7 +286,18 @@ console.log("latest data url ", url)
                   'normal': {'stroke': {'color': 'black', 'thickness': 2.5}},
                   'data': [
                   ]
-                },{
+                }
+                ],
+                'type': 'column'
+              }
+            }
+            this.$data.PressStreet= {
+              'chart': {
+                'title': 'Pressure',
+                'animation': true,
+                'tooltip': {'displayMode': 'union'},
+                'interactivity': {'hoverMode': 'by-x'},
+                'series': [{
                   'seriesType': 'spline',
                   'name': 'Preassure',
                   'normal': {'stroke': {'color': 'green', 'thickness': 2.5}},
@@ -294,31 +310,34 @@ console.log("latest data url ", url)
             }
 
             response.data.data.result.forEach(v=>{
+              if (v.metric.location=="street"){
                 if (v.metric.__name__=="measurement_humidity"){
                   for ( var i=0;i<v.values.length;i++){
                     if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    this.$data.HumStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_temperature"){
                   for ( var i=0;i<v.values.length;i++){
                     if (v.values[i][1]< -60){continue}
-                    this.$data.CombineOptions.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    this.$data.TempStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_gas"){
                   for ( var i=0;i<v.values.length;i++){
                     // if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions1.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]/10).toFixed(0)})
+                    this.$data.GasStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
                 if (v.metric.__name__=="measurement_preassure"){
                   for ( var i=0;i<v.values.length;i++){
                     if (v.values[i][1]==0){continue}
-                    this.$data.CombineOptions1.chart.series[1].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
+                    this.$data.PressStreet.chart.series[0].data.push({'x': timeConverter(v.values[i][0]), 'value': parseFloat(v.values[i][1]).toFixed(0)})
                   }
                 }
-                          })
+                          }
+            }
+                          )
 
 
           }).catch((error) => alert("ERRRR_"+error));

@@ -5,7 +5,10 @@
 import Vue from 'vue'
 import App from './App'
 import VueAxios from './plugins/axios'
+import {Tabs, Tab} from 'vue-tabs-component';
 
+Vue.component('tabs', Tabs);
+Vue.component('tab', Tab);
 Vue.use(VueAxios)
 
 Vue.config.productionTip = false
